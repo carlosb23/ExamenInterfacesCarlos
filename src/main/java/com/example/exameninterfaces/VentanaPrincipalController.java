@@ -7,6 +7,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -15,6 +16,7 @@ import javafx.util.StringConverter;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
@@ -57,6 +59,20 @@ public class VentanaPrincipalController implements Initializable {
     @FXML
     private Button salir;
 
+    double standard = 8.0;
+    double oferta = 6.0;
+    double Largaduracion = 2.0;
+    @FXML
+    private RadioButton radiooferta;
+    @FXML
+    private RadioButton radiolarga;
+    @FXML
+    private RadioButton radioStandard;
+
+    private final ToggleGroup toggleGroup = new ToggleGroup();
+    @FXML
+    private Label clckinfo;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
@@ -68,10 +84,10 @@ public class VentanaPrincipalController implements Initializable {
 
         if (Session.getClientes().isEmpty()){
             ArrayList<Cliente> cli = new ArrayList<>();
-            cli.add(new Cliente("Carlos","carlosforma@gmail.com"));
-            cli.add(new Cliente("Paco","pacojose@gmail.com"));
-            cli.add(new Cliente("Maria","mariajosefa@gmail.com"));
-            cli.add(new Cliente("Lucia","lulu@gmail.com"));
+            cli.add(new Cliente(1L,"Carlos","carlosforma@gmail.com"));
+            cli.add(new Cliente(2L,"Paco","pacojose@gmail.com"));
+            cli.add(new Cliente(3L,"Maria","mariajosefa@gmail.com"));
+            cli.add(new Cliente(4L,"Lucia","lulu@gmail.com"));
             Session.setClientes(cli);
         }
 
@@ -93,7 +109,7 @@ public class VentanaPrincipalController implements Initializable {
         });
         choiseboxcliente.setItems(clientes);
 
-
+        //Para tener la tabla rellena con algo
         if (Session.getCoches().isEmpty()){
             ArrayList<Coche> coch = new ArrayList<>();
             coch.add(new Coche("2154jkf","Vantage",LocalDate.now(),LocalDate.now() ,"Lucia","Standard",5));
@@ -115,11 +131,11 @@ public class VentanaPrincipalController implements Initializable {
         });
         columFechaentra.setCellValueFactory((fila) -> {
             LocalDate fechaentrada = fila.getValue().getFechaentrada();
-            return new SimpleStringProperty(DateTimeFormatter.ofPattern("yyyy-MM-dd").format(fechaentrada));
+            return new SimpleStringProperty(DateTimeFormatter.ofPattern("dd-MM-yyyy").format(fechaentrada));
         });
         columnFechasalida.setCellValueFactory((fila) -> {
-            LocalDate fechasalida = fila.getValue().getFechaentrada();
-            return new SimpleStringProperty(DateTimeFormatter.ofPattern("yyyy-MM-dd").format(fechasalida));
+            LocalDate fechasalida = fila.getValue().getFechasalida();
+            return new SimpleStringProperty(DateTimeFormatter.ofPattern("dd-MM-yyyy").format(fechasalida));
         });
         columCliente.setCellValueFactory((fila)->{
             String cliente = fila.getValue().getCliente();
@@ -139,17 +155,93 @@ public class VentanaPrincipalController implements Initializable {
         });
 
         tabla.setItems(coches);
+
+
+        radioStandard.setToggleGroup(toggleGroup);
+        radiooferta.setToggleGroup(toggleGroup);
+        radiolarga.setToggleGroup(toggleGroup);
+
     }
 
     @FXML
     public void buttonañadir(ActionEvent actionEvent) {
 
+        if (camposEstanLlenos()) {
+            Coche cochenuevo = new Coche();
+            cochenuevo.setMatricula(txtmatricula.getText());
+            cochenuevo.setModelo(combomodelo.getValue()+ "");
+            cochenuevo.setCliente(String.valueOf((Cliente) choiseboxcliente.getValue()));
+            cochenuevo.setFechaentrada(dataentrada.getValue());
+            cochenuevo.setFechasalida(dataSalida.getValue());
 
+            var entrada = dataentrada.getValue();
+            var salida = dataSalida.getValue();
+            RadioButton seleccion = (RadioButton) toggleGroup.getSelectedToggle();
+            Period tiempo = Period.between(entrada,salida);
+            var numeroPeriodo = tiempo.getDays();
+
+            if(seleccion != null){
+                if(seleccion == radioStandard){
+                    var total = numeroPeriodo * 8;
+                    labelcosto.setText(total + " €");
+                    cochenuevo.setCoste(total);
+                }
+                if(seleccion == radiooferta){
+                    var total = numeroPeriodo * 6;
+                    labelcosto.setText(total + " €");
+                    cochenuevo.setCoste(total);
+                }
+                if(seleccion == radiolarga){
+                    var total = numeroPeriodo * 2;
+                    labelcosto.setText(total + " €");
+                    cochenuevo.setCoste(total);
+                }
+            }
+
+            cochenuevo.setTarifa(((RadioButton) toggleGroup.getSelectedToggle()).getText());
+            coches.add(cochenuevo);
+            tabla.setItems(coches);
+
+        } else {
+            // Mostrar una alerta indicando que algunos campos están vacíos
+            mostrarAlerta("Error", "Todos los campos son obligatorios");
+        }
+
+    }
+
+    private boolean camposEstanLlenos() {
+        return !txtmatricula.getText().isEmpty() &&
+                combomodelo.getValue() != null &&
+                dataentrada.getValue() != null &&
+                dataSalida.getValue() != null &&
+                choiseboxcliente.getValue() != null &&
+                toggleGroup.getSelectedToggle() != null;
+    }
+
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
     }
 
     @FXML
     public void btnexit(ActionEvent actionEvent) {
         System.exit(0);
 
+    }
+
+    @FXML
+    public void info(Event event) {
+
+        String miNombre = "Carlos Bustos Torralbo \n 2ºDAM";
+        String mensaje = String.format(miNombre);
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Información Personal");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
     }
 }
